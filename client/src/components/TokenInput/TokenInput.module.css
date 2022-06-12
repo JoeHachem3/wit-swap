@@ -1,0 +1,58 @@
+.TokenInput {
+  position: relative;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  width: 100%;
+}
+
+.TokenInput:hover .amount-input,
+.TokenInput:hover .token > div:nth-child(1) {
+  border-color: var(--color-text);
+}
+
+.amount-input {
+  width: 100%;
+  outline: none;
+  background-color: var(--color-background-1);
+  padding: 1rem 5.5rem 3rem 1.5rem;
+  color: var(--color-text);
+  box-shadow: var(--shadow-inset);
+  border-radius: var(--border-radius-full);
+  border: 1px solid transparent;
+  grid-row: 1;
+  grid-column: 1;
+  transition: var(--transition-2);
+  font-size: 1.5rem;
+}
+
+.amount-input:focus {
+  border-color: var(--color-primary) !important;
+}
+
+.amount-input:focus + .token > div:nth-child(1) {
+  border-color: var(--color-primary);
+}
+
+.token {
+  grid-row: 1;
+  grid-column: 1;
+  justify-self: end;
+  height: calc(100% - 2rem);
+  padding-right: 1rem;
+}
+
+.token > div:nth-child(1) {
+  height: 100%;
+  box-shadow: var(--shadow);
+}
+
+.max-button {
+  font-size: 12px !important;
+  padding: 0.125rem 0.25rem !important;
+  position: absolute !important;
+  bottom: 1rem;
+  left: 1.5rem;
+  width: min-content !important;
+}

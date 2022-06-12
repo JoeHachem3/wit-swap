@@ -1,0 +1,60 @@
+.TokenDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.token {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 4rem;
+  aspect-ratio: 1;
+  border-radius: var(--border-radius-full);
+  transition: var(--transition-2);
+  border: 2px solid var(--color-background-1);
+  background: var(--gradient-card);
+  backdrop-filter: blur(4px);
+  outline: none;
+  position: relative;
+}
+
+.clickable:hover {
+  border-color: var(--color-text);
+}
+
+.clickable:focus {
+  border-color: var(--color-primary);
+}
+
+.clickable:hover,
+.clickable:focus {
+  transform: rotate(-30deg);
+}
+
+.imported::after {
+  content: 'i';
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  background-color: var(--color-primary-faded);
+  border-radius: 50%;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.balance {
+  font-size: 12px;
+}

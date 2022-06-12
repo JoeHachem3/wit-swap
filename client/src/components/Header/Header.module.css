@@ -1,0 +1,46 @@
+.header {
+  width: 100%;
+  padding: 1rem 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4rem;
+}
+
+.logo-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  height: 100%;
+}
+
+.image-container {
+  height: 100%;
+}
+
+.image-container img {
+  height: 100%;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wallet {
+  font-size: 12px !important;
+  padding: 0.25rem 0.5rem !important;
+}
+
+@media screen and (max-width: 767px) {
+  .header {
+    padding: 1rem 5%;
+  }
+}
