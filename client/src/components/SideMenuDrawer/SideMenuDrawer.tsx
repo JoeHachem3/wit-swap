@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -6,7 +6,6 @@ import {
   SwipeableDrawer,
 } from '@mui/material';
 import { ExpandMore } from '@mui/icons-material';
-import { useRef } from 'react';
 import { useSelector } from '../../store/hooks';
 import {
   defaultTokensSelector,
@@ -22,13 +21,10 @@ import TabLinkModel from '../../models/TabLinkModel';
 import { routes } from '../../main';
 import { TokenModel } from '../../models/TokenModel';
 
-const SideMenuDrawer = ({
-  isOpen,
-  setIsOpen,
-}: {
+const SideMenuDrawer: React.FC<{
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+}> = ({ isOpen, setIsOpen }) => {
   const defaultTokens = useSelector(defaultTokensSelector);
   const balances = useSelector(userBalancesSelector);
   const userAddress = useSelector(userAddressSelector);
@@ -60,8 +56,8 @@ const SideMenuDrawer = ({
       onClose={() => setIsOpen(false)}
       onOpen={() => setIsOpen(true)}
     >
-      <div className={classes['container']}>
-        <div className={`${classes['links']} md`}>
+      <div className={classes.container}>
+        <div className={`${classes.links} md`}>
           {routes.map((route) => (
             <TabLink
               key={route.to}
@@ -72,14 +68,14 @@ const SideMenuDrawer = ({
         <hr className="md" />
         <Accordion
           disabled={!claimableTokens.length}
-          className={classes['accordion']}
+          className={classes.accordion}
           elevation={0}
         >
           <AccordionSummary expandIcon={<ExpandMore />}>
             <span>Claimable Tokens</span>
           </AccordionSummary>
           <AccordionDetails>
-            <div className={classes['tokens']}>
+            <div className={classes.tokens}>
               {claimableTokens.map((token) => (
                 <TokenDisplay
                   key={token.address}

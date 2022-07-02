@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {ERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import 'hardhat/console.sol';
 
 contract ClaimableToken is ERC20 {
   uint256 private _claimableAmount;
@@ -22,19 +21,13 @@ contract ClaimableToken is ERC20 {
     _transfer(address(this), msg.sender, totalSupply_ - _claimableAmount);
   }
 
-  // Errors
-  /// @notice Token Claim for this Wallet is not Eligible.
-  error NotEligible(address account, address tokenAddress);
-
   // Functions
   function checkClaimEligibility(address account_) public view returns (bool) {
     return !_claimers[account_] && _claimableAmount != 0;
   }
 
   function claim() public {
-    if (!checkClaimEligibility(msg.sender)) {
-      revert NotEligible(msg.sender, address(this));
-    }
+    require(checkClaimEligibility(msg.sender), 'NOT_ELIGIBLE');
 
     uint256 amountPerClaim = _amountPerClaim;
 

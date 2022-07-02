@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import TokenInput from '../../components/TokenInput/TokenInput';
 import TokenInputModel from '../../models/TokenInputModel';
 import classes from './Pool.module.css';
-import { useCallback, useEffect, useState } from 'react';
 import ConnectWalletButton from '../../components/ConnectWalletButton/ConnectWalletButton';
 import { useDispatch, useSelector } from '../../store/hooks';
 import {
@@ -18,7 +17,7 @@ import TokenListItemModel from '../../models/TokenListItemModel';
 import { useNavigate } from 'react-router-dom';
 import { LoadingButton } from '@mui/lab';
 
-const Pool = () => {
+const Pool: React.FC = () => {
   const userAddress = useSelector(userAddressSelector);
   const tokens = useSelector(tokensSelector);
   const poolTokens = useSelector(poolTokensSelector);
@@ -101,7 +100,7 @@ const Pool = () => {
     isLoading ||
     !sufficientBalance;
 
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (disabled) return;
 
@@ -116,15 +115,17 @@ const Pool = () => {
       token2Amount
     ).finally(() => {
       setIsLoading(false);
+      setToken1Amount('');
+      setToken2Amount('');
     });
   };
 
   return (
-    <form className={classes['Pool']} onSubmit={(e) => submit(e)}>
-      <div className={classes['header']}>
+    <form className={classes.Pool} onSubmit={(e) => submit(e)}>
+      <div className={classes.header}>
         <h1>Pool</h1>
       </div>
-      <div className={classes['inputs']}>
+      <div className={classes.inputs}>
         <TokenInput
           {...new TokenInputModel({
             value: token1Amount,

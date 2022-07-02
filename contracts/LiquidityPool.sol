@@ -26,8 +26,7 @@ contract LiquidityPool is Ownable {
     validAddress(address(token1Address_))
     validAddress(address(token2Address_))
   {
-    if (address(token1Address_) == address(token2Address_))
-      revert SameToken(address(token1Address_));
+    require(address(token1Address_) != address(token2Address_), 'SAME_TOKEN');
 
     token1Address = token1Address_;
     token2Address = token2Address_;
@@ -52,29 +51,9 @@ contract LiquidityPool is Ownable {
     lpToken.mint(account_, 1 ether);
   }
 
-  // Errors
-  /// @notice Same Token.
-  error SameToken(address tokenAddress);
-
-  /// @notice Invalid Address.
-  error InvalidAddress(address account);
-
-  /// @notice Unauthorized.
-  error Unauthorized(address account);
-
-  /// @notice Insufficient Funds.
-  error InsufficientFunds(
-    address account,
-    uint256 currentFunds,
-    uint256 requestedFunds
-  );
-
-  /// @notice Slippage too High.
-  error Slippage(address account, uint256 limitAmount, uint256 actualAmount);
-
   // Modifiers
   modifier validAddress(address account) {
-    if (account == address(0)) revert InvalidAddress(account);
+    require(account != address(0), 'INVALID_ADDRESS');
     _;
   }
 
@@ -93,8 +72,7 @@ contract LiquidityPool is Ownable {
       (_ammConstant /
         (token2Balance + ((token2Amount_ * (1 ether - _FEE)) / 1 ether)));
 
-    if (amount == token1Balance)
-      revert InsufficientFunds(address(this), token1Balance, amount);
+    require(amount != token1Balance, 'INSUFFICIENT_FUNDS');
   }
 
   function getToken2ReturnedAmount(uint256 token1Amount_)
@@ -107,8 +85,7 @@ contract LiquidityPool is Ownable {
       (_ammConstant /
         (token1Balance + ((token1Amount_ * (1 ether - _FEE)) / 1 ether)));
 
-    if (amount == token2Balance)
-      revert InsufficientFunds(address(this), token2Balance, amount);
+    require(amount != token2Balance, 'INSUFFICIENT_FUNDS');
   }
 
   function getToken1Price(uint256 token1Amount_)
@@ -116,8 +93,7 @@ contract LiquidityPool is Ownable {
     view
     returns (uint256 price)
   {
-    if (token1Balance < token1Amount_)
-      revert InsufficientFunds(address(this), token1Balance, token1Amount_);
+    require(token1Balance >= token1Amount_, 'INSUFFICIENT_FUNDS');
 
     price = _ammConstant / (token1Balance - token1Amount_) - token2Balance;
     price += (_FEE * price) / 1 ether;
@@ -128,8 +104,7 @@ contract LiquidityPool is Ownable {
     view
     returns (uint256 price)
   {
-    if (token2Balance < token2Amount_)
-      revert InsufficientFunds(address(this), token2Balance, token2Amount_);
+    require(token2Balance >= token2Amount_, 'INSUFFICIENT_FUNDS');
 
     price = _ammConstant / (token2Balance - token2Amount_) - token1Balance;
     price += (_FEE * price) / 1 ether;
@@ -158,13 +133,11 @@ contract LiquidityPool is Ownable {
   ) public onlyOwner returns (uint256 amount) {
     amount = getToken2ReturnedAmount(token1Amount_);
 
-    if (amount < minAmountReturned_)
-      revert Slippage(account_, minAmountReturned_, amount);
+    require(amount >= minAmountReturned_, 'SLIPPAGE');
 
     uint256 accountBalance = token1Address.balanceOf(account_);
 
-    if (accountBalance < token1Amount_)
-      revert InsufficientFunds(account_, accountBalance, token1Amount_);
+    require(accountBalance >= token1Amount_, 'INSUFFICIENT_FUNDS');
 
     token1Balance += token1Amount_;
     token2Balance -= amount;
@@ -182,13 +155,11 @@ contract LiquidityPool is Ownable {
   ) public onlyOwner returns (uint256 amount) {
     amount = getToken1ReturnedAmount(token2Amount_);
 
-    if (amount < minAmountReturned_)
-      revert Slippage(account_, minAmountReturned_, amount);
+    require(amount >= minAmountReturned_, 'SLIPPAGE');
 
     uint256 accountBalance = token2Address.balanceOf(account_);
 
-    if (accountBalance < token2Amount_)
-      revert InsufficientFunds(account_, accountBalance, token2Amount_);
+    require(accountBalance >= token2Amount_, 'INSUFFICIENT_FUNDS');
 
     token1Balance -= amount;
     token2Balance += token2Amount_;
@@ -206,12 +177,11 @@ contract LiquidityPool is Ownable {
   ) public onlyOwner returns (uint256 amount) {
     amount = getToken1Price(token1Amount_);
 
-    if (amount > maxPrice_) revert Slippage(account_, maxPrice_, amount);
+    require(amount <= maxPrice_, 'SLIPPAGE');
 
     uint256 accountBalance = token2Address.balanceOf(account_);
 
-    if (accountBalance < amount)
-      revert InsufficientFunds(account_, accountBalance, amount);
+    require(accountBalance >= amount, 'INSUFFICIENT_FUNDS');
 
     token1Balance -= token1Amount_;
     token2Balance += amount;
@@ -229,12 +199,11 @@ contract LiquidityPool is Ownable {
   ) public onlyOwner returns (uint256 amount) {
     amount = getToken2Price(token2Amount_);
 
-    if (amount > maxPrice_) revert Slippage(account_, maxPrice_, amount);
+    require(amount <= maxPrice_, 'SLIPPAGE');
 
     uint256 accountBalance = token1Address.balanceOf(account_);
 
-    if (accountBalance < amount)
-      revert InsufficientFunds(account_, accountBalance, amount);
+    require(accountBalance >= amount, 'INSUFFICIENT_FUNDS');
 
     token1Balance += amount;
     token2Balance -= token2Amount_;
@@ -253,10 +222,9 @@ contract LiquidityPool is Ownable {
     uint256 accountToken1Balance = token1Address.balanceOf(account_);
     uint256 accountToken2Balance = token2Address.balanceOf(account_);
 
-    if (accountToken1Balance < token1Amount_)
-      revert InsufficientFunds(account_, accountToken1Balance, token1Amount_);
-    if (accountToken2Balance < token2Amount_)
-      revert InsufficientFunds(account_, accountToken2Balance, token2Amount_);
+    require(accountToken1Balance >= token1Amount_, 'INSUFFICIENT_FUNDS');
+    require(accountToken2Balance >= token2Amount_, 'INSUFFICIENT_FUNDS');
+
     uint256 token1ExpectedBalance = token1Balance + token1Amount_;
     uint256 token2ExpectedBalance = token2Balance + token2Amount_;
 
@@ -300,26 +268,15 @@ contract LiquidityPool is Ownable {
     uint256 minToken2AmountReturned_
   ) external onlyOwner returns (bool isPoolEmpty) {
     uint256 accountBalance = lpToken.balanceOf(account_);
-    if (accountBalance < lpTokenAmount_)
-      revert InsufficientFunds(account_, accountBalance, lpTokenAmount_);
+    require(accountBalance >= lpTokenAmount_, 'INSUFFICIENT_FUNDS');
 
     (
       uint256 accountToken1Liquidity,
       uint256 accountToken2Liquidity
     ) = getLiquidity(lpTokenAmount_);
 
-    if (accountToken1Liquidity < minToken1AmountReturned_)
-      revert Slippage(
-        account_,
-        minToken1AmountReturned_,
-        accountToken1Liquidity
-      );
-    if (accountToken2Liquidity < minToken2AmountReturned_)
-      revert Slippage(
-        account_,
-        minToken2AmountReturned_,
-        accountToken2Liquidity
-      );
+    require(accountToken1Liquidity >= minToken1AmountReturned_, 'SLIPPAGE');
+    require(accountToken2Liquidity >= minToken2AmountReturned_, 'SLIPPAGE');
 
     token1Balance -= accountToken1Liquidity;
     token2Balance -= accountToken2Liquidity;

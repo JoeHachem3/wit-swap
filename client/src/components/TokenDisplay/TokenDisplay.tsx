@@ -1,10 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import TokenDisplayModel from '../../models/TokenDisplayModel';
 import { minimizeAddress } from '../../utils';
 import { ArrowDropDown, CopyAllRounded } from '@mui/icons-material';
 import { Chip, Tooltip } from '@mui/material';
 import classes from './TokenDisplay.module.css';
-import { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   userAddressSelector,
@@ -14,7 +13,7 @@ import bc from '../../utils/blockchain';
 import { useDispatch } from '../../store/hooks';
 import { userActions } from '../../store/user/userReducer';
 
-const TokenDisplay = (props: TokenDisplayModel) => {
+const TokenDisplay: React.FC<TokenDisplayModel> = (props) => {
   const tooltipTimeout = useRef<NodeJS.Timeout>();
 
   const balances = useSelector(userBalancesSelector);
@@ -56,14 +55,14 @@ const TokenDisplay = (props: TokenDisplayModel) => {
   };
 
   return (
-    <div className={`${classes['TokenDisplay']} ${props.className}`}>
+    <div className={`${classes.TokenDisplay} ${props.className}`}>
       <div
         tabIndex={props.isClickable ? 0 : -1}
-        className={`${classes['token']} ${
+        className={`${classes.token} ${
           props.isClickable
-            ? 'clickable ' + (tokenSymbol ? classes['clickable'] : '')
+            ? 'clickable ' + (tokenSymbol ? classes.clickable : '')
             : ''
-        } ${props.isImported ? classes['imported'] : ''}`}
+        } ${props.isImported ? classes.imported : ''}`}
         onClick={() => {
           if (props.isClickable) props.onClick();
         }}
@@ -74,7 +73,7 @@ const TokenDisplay = (props: TokenDisplayModel) => {
       >
         {tokenSymbol ? <span>{tokenSymbol}</span> : <ArrowDropDown />}
       </div>
-      <div className={classes['info']}>
+      <div className={classes.info}>
         {props.tokenAddress && props.showAddress && (
           <Tooltip
             title={'Token Address Copied!'}
@@ -94,11 +93,11 @@ const TokenDisplay = (props: TokenDisplayModel) => {
           </Tooltip>
         )}
         {props.showBalance ? (
-          <span className={classes['balance']}>
+          <span className={classes.balance}>
             Balance: {balances[props.tokenAddress]}
           </span>
         ) : props.customBalance ? (
-          <span className={classes['balance']}>
+          <span className={classes.balance}>
             {props.customBalance.label}: {props.customBalance.balance}
           </span>
         ) : null}

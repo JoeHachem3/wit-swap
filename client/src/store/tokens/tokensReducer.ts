@@ -18,7 +18,7 @@ const addToken: CaseReducer<
     !state.defaultTokens[getNetworkId()]?.find(
       (token) => token.address === action.payload.token.address
     ) &&
-    state.importedTokens[getNetworkId()]?.push(action.payload.token as any);
+    state.importedTokens[getNetworkId()]?.push(action.payload.token);
 };
 
 const removeToken: CaseReducer<

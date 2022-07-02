@@ -58,12 +58,12 @@ const TokenInput: FC<TokenInputModel> = (props = new TokenInputModel({})) => {
   };
 
   return (
-    <div className={classes['TokenInput']}>
+    <div className={classes.TokenInput}>
       <input
         formNoValidate
         className={classes['amount-input']}
         type="number"
-        step="any"
+        step="0.01"
         min="0"
         placeholder="0.00"
         value={value}
@@ -72,7 +72,7 @@ const TokenInput: FC<TokenInputModel> = (props = new TokenInputModel({})) => {
       <TokenDisplay
         {...new TokenDisplayModel({
           tokenAddress: props.tokenAddress,
-          className: classes['token'],
+          className: classes.token,
           onClick: () => setIsDialogOpen(true),
           isClickable: true,
         })}

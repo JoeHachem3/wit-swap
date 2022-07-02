@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { AppState } from './store';
 import { getNetworkId } from '../utils/blockchain';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from '../../store/hooks';
 import { userAddressSelector } from '../../store/selectors';
 import bc from '../../utils/blockchain';
@@ -6,13 +6,10 @@ import { Button } from '@mui/material';
 import { minimizeAddress } from '../../utils';
 import classes from './ConnectWalletButton.module.css';
 import { userActions } from '../../store/user/userReducer';
-import { useCallback } from 'react';
 
-const ConnectWalletButton = ({
-  size = 'large',
-}: {
+const ConnectWalletButton: React.FC<{
   size?: 'small' | 'large';
-}) => {
+}> = ({ size = 'large' }) => {
   const userAddress = useSelector(userAddressSelector);
 
   const dispatch = useDispatch();

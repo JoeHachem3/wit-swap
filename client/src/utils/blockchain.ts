@@ -1,8 +1,10 @@
+// eslint-disable-next-line node/no-unpublished-import
 import { ethers } from 'ethers';
 import witSwapJSON from '../../../artifacts/contracts/WITSwap.sol/WITSwap.json';
 import ClaimableTokenJSON from '../../../artifacts/contracts/ClaimableToken.sol/ClaimableToken.json';
 import ERC20JSON from '../../../artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json';
 import LiquidityPoolJSON from '../../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json';
+// eslint-disable-next-line node/no-missing-import
 import LpTokenJSON from '../../../artifacts/contracts/LpToken.sol/LpToken.json';
 import {
   ClaimableToken,
@@ -17,18 +19,17 @@ import { uiActions } from '../store/ui/uiReducer';
 import { userActions } from '../store/user/userReducer';
 
 class Blockchain {
-  static networkId: string = '';
+  static networkId = '';
   private _provider?: ethers.providers.Web3Provider;
   private _witSwapContract?: WITSwap;
   private _signer?: ethers.providers.JsonRpcSigner;
-  private _userAddress: string = '';
+  private _userAddress = '';
   private _tokenSymbols: { [key: string]: string } = {};
   private _tokenContracts: { [key: string]: ERC20 } = {};
   private _claimableTokenContracts: { [key: string]: ClaimableToken } = {};
   private _liquidityPoolContracts: {
     [key: string]: { [key: string]: LiquidityPool };
   } = {};
-
   private _lpTokenContracts: { [key: string]: LPToken } = {};
   private _contractAddresses: {
     [key: string]: { witSwap: string; claimableTokens: string[] };
@@ -42,25 +43,45 @@ class Blockchain {
       ],
     },
     '3': {
-      witSwap: '0x072Ce183d4A9047A2B537e7e877B68c0C33A9b96',
+      witSwap: '0x6516fe03D5aba00978ea29631D917f74eE9dbF34',
       claimableTokens: [
-        '0xc71e51fF52Cd70427eF1EED68943384e42104373',
-        '0x22edE1712cc91427Decd50EC60f7a158263361D0',
-        '0x3FCf2D700613A7953B2469217C0a6085e46E1943',
+        '0x1eB5E9e7d9cAF9EEc9fE42c20180069e36716C75',
+        '0x4e83d79C03f5c757b175317f9D4CedB9E66BbD06',
+        '0xead4bD3dFa045cab15c74aba54B53c2E496d9f71',
       ],
     },
   };
-
-  private _networksMapping: { [key: string]: string } = {
-    '1337': '',
-    '3': 'https://ropsten.etherscan.io/tx/',
+  private _networksMapping: { [key: string]: { name: string; url: string } } = {
+    '1337': { name: '', url: '' },
+    '3': { name: 'Ropsten', url: 'https://ropsten.etherscan.io/tx/' },
   };
-
   private _isNetworkSupported?: boolean;
+  private errorMessages: { [key: string]: string } = {
+    NOT_ELIGIBLE: 'Action is not Eligible for This Wallet',
+    SAME_TOKEN: 'Cannot Use the Same Token',
+    INVALID_ADDRESS: 'Invalid Address',
+    INSUFFICIENT_FUNDS: 'Insufficient Funds',
+    SLIPPAGE: 'Slippage too High',
+    POOL_EXISTS: 'Pool Already Exists',
+    POOL_DOES_NOT_EXIST: 'Pool Does not Exist',
+    NO_LIQUIDITY_PROVIDED: 'No Liquidity Provided',
+    NO_ERC20: 'No ERC20 Token at This Address',
+    NO_LP_TOKEN: 'No LP Token at This Address',
+    NO_CLAIMABLE_TOKEN: 'No Claimable Token at This Address',
+    WRONG_NETWORK:
+      'Wrong Network, please switch to one of the following: ' +
+      Object.values(this._networksMapping)
+        .map((network) => network.name)
+        .filter((name) => name)
+        .join(', '),
+    NO_WALLET_CONNECTED: 'No Wallet Connected',
+    NO_METAMASK: 'Install the Metamask Extension to Use the App',
+    '': 'Something Went Wrong...',
+  };
 
   constructor() {
     if (!window.ethereum) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     this._provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
@@ -74,7 +95,7 @@ class Blockchain {
 
   private _getWitSwap = async () => {
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
     if (!this._witSwapContract) {
@@ -89,7 +110,7 @@ class Blockchain {
 
   isNetworkSupported = async () => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (this._isNetworkSupported === undefined) {
@@ -101,48 +122,22 @@ class Blockchain {
     return this._isNetworkSupported;
   };
 
-  emitProviderError = () =>
-    store.dispatch(
-      uiActions.openSnackbar({
-        severity: 'error',
-        message: 'Install the Metamask Extension to Use the App',
-      })
-    );
+  handleError = (errorMessage: string) => {
+    const key =
+      Object.keys(this.errorMessages).find((key) =>
+        errorMessage.includes(key)
+      ) || '';
 
-  emitNetworkError = () =>
     store.dispatch(
       uiActions.openSnackbar({
         severity: 'error',
-        message: 'Wrong Network',
+        message: this.errorMessages[key],
       })
     );
-
-  emitSignerError = () =>
-    store.dispatch(
-      uiActions.openSnackbar({
-        severity: 'error',
-        message: 'No Wallet Connected',
-      })
-    );
-
-  emitTokenError = () =>
-    store.dispatch(
-      uiActions.openSnackbar({
-        severity: 'error',
-        message: 'Could not Find an ERC20 Token at This Address',
-      })
-    );
-
-  emitError = () =>
-    store.dispatch(
-      uiActions.openSnackbar({
-        severity: 'error',
-        message: 'Something Went Wrong...',
-      })
-    );
+  };
 
   handleTransaction = (tx: ethers.ContractTransaction) => {
-    const baseUrl = this._networksMapping[Blockchain.networkId];
+    const baseUrl = this._networksMapping[Blockchain.networkId].url;
     if (!baseUrl)
       store.dispatch(
         uiActions.openSnackbar({
@@ -162,115 +157,131 @@ class Blockchain {
 
   connectWallet = async () => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
 
     if (this._userAddress) return this._userAddress;
 
-    await this._provider.send('eth_requestAccounts', []);
-    this._signer = this._provider.getSigner();
-    this._userAddress = await this._signer.getAddress();
+    try {
+      await this._provider.send('eth_requestAccounts', []);
+      this._signer = this._provider.getSigner();
+      this._userAddress = await this._signer.getAddress();
 
-    window.ethereum.on('accountsChanged', (accounts: string[]) => {
-      store.dispatch(userActions.setUserAddress({ address: accounts[0] }));
-      store.dispatch(userActions.resetBalances());
-    });
-
-    const updateBalance = (tokenAddress: string) => {
-      this.getTokenBalance(tokenAddress).then((balance) => {
-        if (!balance) return;
-        store.dispatch(userActions.setBalance({ tokenAddress, balance }));
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        store.dispatch(userActions.setUserAddress({ address: accounts[0] }));
+        store.dispatch(userActions.resetBalances());
       });
-    };
 
-    this.getContractAddresses().claimableTokens.forEach(async (address) => {
-      (await this.getClaimableTokenContract(address))?.on(
-        'Transfer',
-        (from: string, to: string, amount: number) => {
-          if ([from, to].includes(this._userAddress)) {
-            updateBalance(address);
+      const updateBalance = (tokenAddress: string) => {
+        this.getTokenBalance(tokenAddress).then((balance) => {
+          if (!balance) return;
+          store.dispatch(userActions.setBalance({ tokenAddress, balance }));
+        });
+      };
+
+      this.getContractAddresses().claimableTokens.forEach(async (address) => {
+        (await this.getClaimableTokenContract(address))?.on(
+          'Transfer',
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          (from: string, to: string, amount: number) => {
+            if ([from, to].includes(this._userAddress)) {
+              updateBalance(address);
+            }
+          }
+        );
+      });
+
+      const witSwapContract = await this._getWitSwap();
+
+      if (!witSwapContract) return;
+
+      witSwapContract.on(
+        'PoolCreated',
+        (
+          account: string,
+          token1Address: string,
+          token2Address: string,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          liquidityPoolAddress: string
+        ) => {
+          if (account === this._userAddress) {
+            updateBalance(token1Address);
+            updateBalance(token2Address);
           }
         }
       );
-    });
 
-    const witSwapContract = await this._getWitSwap();
-
-    if (!witSwapContract) return;
-
-    witSwapContract.on(
-      'PoolCreated',
-      (
-        account: string,
-        token1Address: string,
-        token2Address: string,
-        liquidityPoolAddress: string
-      ) => {
-        if (account === this._userAddress) {
-          updateBalance(token1Address);
-          updateBalance(token2Address);
+      witSwapContract.on(
+        'Swapped',
+        (
+          account: string,
+          token1Address: string,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          token1Amount: string,
+          token2Address: string,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          token2Amount: string
+        ) => {
+          if (account === this._userAddress) {
+            updateBalance(token1Address);
+            updateBalance(token2Address);
+          }
         }
-      }
-    );
+      );
 
-    witSwapContract.on(
-      'Swapped',
-      (
-        account: string,
-        token1Address: string,
-        token1Amount: string,
-        token2Address: string,
-        token2Amount: string
-      ) => {
-        if (account === this._userAddress) {
-          updateBalance(token1Address);
-          updateBalance(token2Address);
+      witSwapContract.on(
+        'LiquidityProvided',
+        (
+          account: string,
+          token1Address: string,
+          token1Amount: string,
+          token2Address: string,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          token2Amount: string
+        ) => {
+          if (account === this._userAddress) {
+            updateBalance(token1Address);
+            updateBalance(token2Address);
+            this.getLpTokenContract(token1Address, token2Address)
+              .then((contract) => {
+                contract && updateBalance(contract.address);
+              })
+              .catch();
+          }
         }
-      }
-    );
+      );
 
-    witSwapContract.on(
-      'LiquidityProvided',
-      (
-        account: string,
-        token1Address: string,
-        token1Amount: string,
-        token2Address: string,
-        token2Amount: string
-      ) => {
-        if (account === this._userAddress) {
-          updateBalance(token1Address);
-          updateBalance(token2Address);
+      witSwapContract.on(
+        'LiquidityWithdrawn',
+        (
+          account: string,
+          token1Address: string,
+          token2Address: string,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          lpTokenAmount: string
+        ) => {
+          if (account === this._userAddress) {
+            updateBalance(token1Address);
+            updateBalance(token2Address);
+            this.getLpTokenContract(token1Address, token2Address)
+              .then((contract) => {
+                contract && updateBalance(contract.address);
+              })
+              .catch();
+          }
         }
-      }
-    );
+      );
 
-    witSwapContract.on(
-      'LiquidityWithdrawn',
-      (
-        account: string,
-        token1Address: string,
-        token2Address: string,
-        lpTokenAmount: string
-      ) => {
-        if (account === this._userAddress) {
-          updateBalance(token1Address);
-          updateBalance(token2Address);
-          this.getLpTokenContract(token1Address, token2Address)
-            .then((contract) => {
-              contract && updateBalance(contract.address);
-            })
-            .catch();
-        }
-      }
-    );
-
-    return this._userAddress;
+      return this._userAddress;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
+    }
   };
 
   getContractAddresses = () => {
@@ -279,11 +290,11 @@ class Blockchain {
 
   getTokenContract = async (address: string) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
     if (!this._tokenContracts[address]) {
@@ -294,7 +305,7 @@ class Blockchain {
           this._provider
         ) as ERC20;
       } catch (e) {
-        this.emitTokenError();
+        this.handleError('NO_ERC20');
         return;
       }
     }
@@ -303,11 +314,11 @@ class Blockchain {
 
   getClaimableTokenContract = async (address: string) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
     if (!this._claimableTokenContracts[address]) {
@@ -319,7 +330,7 @@ class Blockchain {
         ) as ClaimableToken;
         this._tokenContracts[address] = this._claimableTokenContracts[address];
       } catch (e) {
-        this.emitTokenError();
+        this.handleError('NO_ERC20');
         return;
       }
     }
@@ -343,11 +354,11 @@ class Blockchain {
   ) => {
     try {
       if (!this._provider) {
-        this.emitProviderError();
+        this.handleError('NO_METAMASK');
         return '0';
       }
       if (!(await this.isNetworkSupported())) {
-        this.emitNetworkError();
+        this.handleError('WRONG_NETWORK');
         return '0';
       }
       const contract = await this.getTokenContract(tokenAddress);
@@ -368,11 +379,11 @@ class Blockchain {
     token2Address: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
 
@@ -389,13 +400,18 @@ class Blockchain {
         token2Address
       );
       if (!poolAddress || poolAddress === zeroAddress) return;
-      const pool = new ethers.Contract(
-        poolAddress,
-        LiquidityPoolJSON.abi,
-        this._provider
-      ) as LiquidityPool;
-      this._liquidityPoolContracts[token1Address][token2Address] = pool;
-      this._liquidityPoolContracts[token2Address][token1Address] = pool;
+      try {
+        const pool = new ethers.Contract(
+          poolAddress,
+          LiquidityPoolJSON.abi,
+          this._provider
+        ) as LiquidityPool;
+        this._liquidityPoolContracts[token1Address][token2Address] = pool;
+        this._liquidityPoolContracts[token2Address][token1Address] = pool;
+      } catch (e) {
+        this.handleError('POOL_DOES_NOT_EXIST');
+        return;
+      }
     }
 
     return this._liquidityPoolContracts[token1Address][token2Address];
@@ -403,7 +419,7 @@ class Blockchain {
 
   getLpTokenContract = async (token1Address: string, token2Address: string) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     const pool = await this.getLiquidityPoolContract(
@@ -413,14 +429,19 @@ class Blockchain {
     if (!pool) return;
 
     if (!this._lpTokenContracts[pool.address]) {
-      this._lpTokenContracts[pool.address] = new ethers.Contract(
-        await pool.lpToken(),
-        LpTokenJSON.abi,
-        this._provider
-      ) as LPToken;
+      try {
+        this._lpTokenContracts[pool.address] = new ethers.Contract(
+          await pool.lpToken(),
+          LpTokenJSON.abi,
+          this._provider
+        ) as LPToken;
 
-      this._tokenContracts[this._lpTokenContracts[pool.address].address] =
-        this._lpTokenContracts[pool.address];
+        this._tokenContracts[this._lpTokenContracts[pool.address].address] =
+          this._lpTokenContracts[pool.address];
+      } catch (e) {
+        this.handleError('NO_LP_TOKEN');
+        return;
+      }
     }
 
     return this._lpTokenContracts[pool.address];
@@ -432,7 +453,7 @@ class Blockchain {
     userAddress: string = this._userAddress
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     const lpToken = await this.getLpTokenContract(token1Address, token2Address);
@@ -448,38 +469,44 @@ class Blockchain {
     ttsAmount: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
-    const [ttsContract, ttbContract] = await Promise.all([
-      this.getTokenContract(ttsAddress),
-      this.getTokenContract(ttbAddress),
-    ]);
 
-    if (!ttsContract || !ttbContract) return;
+    try {
+      const [ttsContract, ttbContract] = await Promise.all([
+        this.getTokenContract(ttsAddress),
+        this.getTokenContract(ttbAddress),
+      ]);
 
-    const [ttsDecimals, ttbDecimals] = await Promise.all([
-      ttsContract.decimals(),
-      ttbContract.decimals(),
-    ]);
+      if (!ttsContract || !ttbContract) return;
 
-    ttsAmount = toWei(ttsAmount, ttsDecimals);
+      const [ttsDecimals, ttbDecimals] = await Promise.all([
+        ttsContract.decimals(),
+        ttbContract.decimals(),
+      ]);
 
-    const witSwapContract = await this._getWitSwap();
+      ttsAmount = toWei(ttsAmount, ttsDecimals);
 
-    const tokenReturnedAmount = await witSwapContract?.getTokenReturnedAmount(
-      ttsAddress,
-      ttbAddress,
-      ttsAmount
-    );
-    return (
-      tokenReturnedAmount &&
-      toEther(tokenReturnedAmount.toString(), ttbDecimals)
-    );
+      const witSwapContract = await this._getWitSwap();
+
+      const tokenReturnedAmount = await witSwapContract?.getTokenReturnedAmount(
+        ttsAddress,
+        ttbAddress,
+        ttsAmount
+      );
+      return (
+        tokenReturnedAmount &&
+        toEther(tokenReturnedAmount.toString(), ttbDecimals)
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
+    }
   };
 
   getTokenPrice = async (
@@ -488,35 +515,40 @@ class Blockchain {
     ttbAmount: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
-    const [ttsContract, ttbContract] = await Promise.all([
-      this.getTokenContract(ttsAddress),
-      this.getTokenContract(ttbAddress),
-    ]);
+    try {
+      const [ttsContract, ttbContract] = await Promise.all([
+        this.getTokenContract(ttsAddress),
+        this.getTokenContract(ttbAddress),
+      ]);
 
-    if (!ttsContract || !ttbContract) return;
+      if (!ttsContract || !ttbContract) return;
 
-    const [ttsDecimals, ttbDecimals] = await Promise.all([
-      ttsContract.decimals(),
-      ttbContract.decimals(),
-    ]);
+      const [ttsDecimals, ttbDecimals] = await Promise.all([
+        ttsContract.decimals(),
+        ttbContract.decimals(),
+      ]);
 
-    ttbAmount = toWei(ttbAmount, ttbDecimals);
+      ttbAmount = toWei(ttbAmount, ttbDecimals);
 
-    const witSwapContract = await this._getWitSwap();
+      const witSwapContract = await this._getWitSwap();
 
-    const tokenPrice = await witSwapContract?.getTokenPrice(
-      ttsAddress,
-      ttbAddress,
-      ttbAmount
-    );
-    return tokenPrice && toEther(tokenPrice.toString(), ttsDecimals);
+      const tokenPrice = await witSwapContract?.getTokenPrice(
+        ttsAddress,
+        ttbAddress,
+        ttbAmount
+      );
+      return tokenPrice && toEther(tokenPrice.toString(), ttsDecimals);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
+    }
   };
 
   sellToken = async (
@@ -526,54 +558,59 @@ class Blockchain {
     minAmountReturned: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
 
-    const witSwapContract = await this._getWitSwap();
-    if (!witSwapContract || !this._signer) return;
-    const poolAddress = await witSwapContract.pools(ttsAddress, ttbAddress);
-    if (!poolAddress || poolAddress === zeroAddress) return;
+    try {
+      const witSwapContract = await this._getWitSwap();
+      if (!witSwapContract || !this._signer) return;
+      const poolAddress = await witSwapContract.pools(ttsAddress, ttbAddress);
+      if (!poolAddress || poolAddress === zeroAddress) return;
 
-    const [ttsContract, ttbContract] = await Promise.all([
-      this.getTokenContract(ttsAddress),
-      this.getTokenContract(ttbAddress),
-    ]);
+      const [ttsContract, ttbContract] = await Promise.all([
+        this.getTokenContract(ttsAddress),
+        this.getTokenContract(ttbAddress),
+      ]);
 
-    if (!ttsContract || !ttbContract) return;
+      if (!ttsContract || !ttbContract) return;
 
-    const [ttsDecimals, ttbDecimals] = await Promise.all([
-      ttsContract.decimals(),
-      ttbContract.decimals(),
-    ]);
+      const [ttsDecimals, ttbDecimals] = await Promise.all([
+        ttsContract.decimals(),
+        ttbContract.decimals(),
+      ]);
 
-    let allowed = (
-      await ttsContract.allowance(this._userAddress, poolAddress)
-    ).toString();
+      let allowed = (
+        await ttsContract.allowance(this._userAddress, poolAddress)
+      ).toString();
 
-    allowed = toEther(allowed, ttsDecimals);
+      allowed = toEther(allowed, ttsDecimals);
 
-    const shouldApprove = +allowed < +ttsAmount;
+      const shouldApprove = +allowed < +ttsAmount;
 
-    ttsAmount = toWei(ttsAmount, ttsDecimals);
-    minAmountReturned = toWei(minAmountReturned, ttbDecimals);
+      ttsAmount = toWei(ttsAmount, ttsDecimals);
+      minAmountReturned = toWei(minAmountReturned, ttbDecimals);
 
-    if (shouldApprove) {
-      const approval = await ttsContract
+      if (shouldApprove) {
+        const approval = await ttsContract
+          .connect(this._signer)
+          .approve(poolAddress, ttsAmount);
+        await approval.wait();
+      }
+
+      const tx = await witSwapContract
         .connect(this._signer)
-        .approve(poolAddress, ttsAmount);
-      await approval.wait();
+        .sellToken(ttsAddress, ttbAddress, ttsAmount, minAmountReturned);
+
+      this.handleTransaction(tx);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
     }
-
-    const tx = await witSwapContract
-      .connect(this._signer)
-      .sellToken(ttsAddress, ttbAddress, ttsAmount, minAmountReturned);
-
-    this.handleTransaction(tx);
   };
 
   buyToken = async (
@@ -583,54 +620,66 @@ class Blockchain {
     maxPrice: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
 
-    const witSwapContract = await this._getWitSwap();
-    if (!witSwapContract || !this._signer) return;
-    const poolAddress = await witSwapContract.pools(ttsAddress, ttbAddress);
-    if (!poolAddress || poolAddress === zeroAddress) return;
+    try {
+      const witSwapContract = await this._getWitSwap();
+      if (!witSwapContract || !this._signer) return;
+      const poolAddress = await witSwapContract.pools(ttsAddress, ttbAddress);
+      if (!poolAddress || poolAddress === zeroAddress) return;
 
-    const [ttsContract, ttbContract] = await Promise.all([
-      this.getTokenContract(ttsAddress),
-      this.getTokenContract(ttbAddress),
-    ]);
+      const [ttsContract, ttbContract] = await Promise.all([
+        this.getTokenContract(ttsAddress),
+        this.getTokenContract(ttbAddress),
+      ]);
 
-    if (!ttsContract || !ttbContract) return;
+      if (!ttsContract || !ttbContract) return;
 
-    const [ttsDecimals, ttbDecimals] = await Promise.all([
-      ttsContract.decimals(),
-      ttbContract.decimals(),
-    ]);
+      console.log(await ttsContract?.symbol(), await ttbContract?.symbol());
 
-    let allowed = (
-      await ttsContract.allowance(this._userAddress, poolAddress)
-    ).toString();
+      const [ttsDecimals, ttbDecimals] = await Promise.all([
+        ttsContract.decimals(),
+        ttbContract.decimals(),
+      ]);
 
-    allowed = toEther(allowed, ttsDecimals);
+      let allowed = (
+        await ttsContract.allowance(this._userAddress, poolAddress)
+      ).toString();
 
-    const shouldApprove = +allowed < +maxPrice;
+      allowed = toEther(allowed, ttsDecimals);
 
-    ttbAmount = toWei(ttbAmount, ttbDecimals);
-    maxPrice = toWei(maxPrice, ttsDecimals);
+      const shouldApprove = +allowed < +maxPrice;
 
-    if (shouldApprove) {
-      const approval = await ttsContract
+      ttbAmount = toWei(ttbAmount, ttbDecimals);
+      maxPrice = toWei(maxPrice, ttsDecimals);
+      console.log({ maxPrice });
+      console.log(
+        (
+          await witSwapContract.getTokenPrice(ttsAddress, ttbAddress, ttbAmount)
+        ).toString()
+      );
+      if (shouldApprove) {
+        const approval = await ttsContract
+          .connect(this._signer)
+          .approve(poolAddress, maxPrice);
+        await approval.wait();
+      }
+
+      const tx = await witSwapContract
         .connect(this._signer)
-        .approve(poolAddress, maxPrice);
-      await approval.wait();
+        .buyToken(ttsAddress, ttbAddress, ttbAmount, maxPrice);
+
+      this.handleTransaction(tx);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
     }
-
-    const tx = await witSwapContract
-      .connect(this._signer)
-      .buyToken(ttsAddress, ttbAddress, ttbAmount, maxPrice);
-
-    this.handleTransaction(tx);
   };
 
   createPool = async (
@@ -640,75 +689,87 @@ class Blockchain {
     token2Amount: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
-    const witSwapContract = await this._getWitSwap();
-    if (!witSwapContract || !this._signer) return;
-    const poolExists = await this.getLiquidityPoolContract(
-      token1Address,
-      token2Address
-    );
-    if (poolExists) return;
 
-    const [token1Contract, token2Contract] = await Promise.all([
-      this.getTokenContract(token1Address),
-      this.getTokenContract(token2Address),
-    ]);
-
-    if (!token1Contract || !token2Contract) return;
-
-    const [token1Decimals, token2Decimals] = await Promise.all([
-      token1Contract.decimals(),
-      token2Contract.decimals(),
-    ]);
-
-    let allowed1 = (
-      await token1Contract.allowance(this._userAddress, witSwapContract.address)
-    ).toString();
-    let allowed2 = (
-      await token2Contract.allowance(this._userAddress, witSwapContract.address)
-    ).toString();
-
-    allowed1 = toEther(allowed1, token1Decimals);
-    allowed2 = toEther(allowed2, token2Decimals);
-
-    const shouldApprove1 = +allowed1 < +token1Amount;
-    const shouldApprove2 = +allowed2 < +token2Amount;
-
-    token1Amount = toWei(token1Amount, token1Decimals);
-    token2Amount = toWei(token2Amount, token2Decimals);
-
-    const approvePromises = [];
-
-    if (shouldApprove1)
-      approvePromises.push(
-        token1Contract
-          .connect(this._signer)
-          .approve(witSwapContract.address, token1Amount)
+    try {
+      const witSwapContract = await this._getWitSwap();
+      if (!witSwapContract || !this._signer) return;
+      const poolExists = await this.getLiquidityPoolContract(
+        token1Address,
+        token2Address
       );
+      if (poolExists) return;
 
-    if (shouldApprove2)
-      approvePromises.push(
-        token2Contract
-          .connect(this._signer)
-          .approve(witSwapContract.address, token2Amount)
-      );
+      const [token1Contract, token2Contract] = await Promise.all([
+        this.getTokenContract(token1Address),
+        this.getTokenContract(token2Address),
+      ]);
 
-    if (approvePromises.length) {
-      const approvals = await Promise.all(approvePromises);
-      await Promise.all(approvals.map((approval) => approval.wait()));
+      if (!token1Contract || !token2Contract) return;
+
+      const [token1Decimals, token2Decimals] = await Promise.all([
+        token1Contract.decimals(),
+        token2Contract.decimals(),
+      ]);
+
+      let allowed1 = (
+        await token1Contract.allowance(
+          this._userAddress,
+          witSwapContract.address
+        )
+      ).toString();
+      let allowed2 = (
+        await token2Contract.allowance(
+          this._userAddress,
+          witSwapContract.address
+        )
+      ).toString();
+
+      allowed1 = toEther(allowed1, token1Decimals);
+      allowed2 = toEther(allowed2, token2Decimals);
+
+      const shouldApprove1 = +allowed1 < +token1Amount;
+      const shouldApprove2 = +allowed2 < +token2Amount;
+
+      token1Amount = toWei(token1Amount, token1Decimals);
+      token2Amount = toWei(token2Amount, token2Decimals);
+
+      const approvePromises = [];
+
+      if (shouldApprove1)
+        approvePromises.push(
+          token1Contract
+            .connect(this._signer)
+            .approve(witSwapContract.address, token1Amount)
+        );
+
+      if (shouldApprove2)
+        approvePromises.push(
+          token2Contract
+            .connect(this._signer)
+            .approve(witSwapContract.address, token2Amount)
+        );
+
+      if (approvePromises.length) {
+        const approvals = await Promise.all(approvePromises);
+        await Promise.all(approvals.map((approval) => approval.wait()));
+      }
+
+      const tx = await witSwapContract
+        .connect(this._signer)
+        .createPool(token1Address, token1Amount, token2Address, token2Amount);
+
+      this.handleTransaction(tx);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
     }
-
-    const tx = await witSwapContract
-      .connect(this._signer)
-      .createPool(token1Address, token1Amount, token2Address, token2Amount);
-
-    this.handleTransaction(tx);
   };
 
   getLiquidity = async (
@@ -717,36 +778,42 @@ class Blockchain {
     lpTokenAmount: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     const witSwap = await this._getWitSwap();
     if (!witSwap) return { token1Amount: '0', token2Amount: '0' };
 
-    const [token1Contract, token2Contract] = await Promise.all([
-      this.getTokenContract(token1Address),
-      this.getTokenContract(token2Address),
-    ]);
+    try {
+      const [token1Contract, token2Contract] = await Promise.all([
+        this.getTokenContract(token1Address),
+        this.getTokenContract(token2Address),
+      ]);
 
-    if (!token1Contract || !token2Contract) return;
+      if (!token1Contract || !token2Contract) return;
 
-    const [token1Decimals, token2Decimals] = await Promise.all([
-      token1Contract.decimals(),
-      token2Contract.decimals(),
-    ]);
+      const [token1Decimals, token2Decimals] = await Promise.all([
+        token1Contract.decimals(),
+        token2Contract.decimals(),
+      ]);
 
-    lpTokenAmount = toWei(lpTokenAmount);
+      lpTokenAmount = toWei(lpTokenAmount);
 
-    const [token1Amount, token2Amount] = await witSwap.getLiquidity(
-      token1Address,
-      token2Address,
-      lpTokenAmount
-    );
+      const [token1Amount, token2Amount] = await witSwap.getLiquidity(
+        token1Address,
+        token2Address,
+        lpTokenAmount
+      );
 
-    return {
-      token1Amount: toEther(token1Amount.toString(), token1Decimals),
-      token2Amount: toEther(token2Amount.toString(), token2Decimals),
-    };
+      return {
+        token1Amount: toEther(token1Amount.toString(), token1Decimals),
+        token2Amount: toEther(token2Amount.toString(), token2Decimals),
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
+      return { token1Amount: '0', token2Amount: '0' };
+    }
   };
 
   provideLiquidity = async (
@@ -756,80 +823,97 @@ class Blockchain {
     token2Amount: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
     if (!this._signer) {
-      this.emitSignerError();
+      this.handleError('NO_WALLET_CONNECTED');
       return;
     }
 
-    const witSwapContract = await this._getWitSwap();
-    if (!witSwapContract) return;
-    const poolAddress = await witSwapContract.pools(
-      token1Address,
-      token2Address
-    );
-    if (!poolAddress || poolAddress === zeroAddress) return;
-
-    const [token1Contract, token2Contract] = await Promise.all([
-      this.getTokenContract(token1Address),
-      this.getTokenContract(token2Address),
-    ]);
-
-    if (!token1Contract || !token2Contract) return;
-
-    const [token1Decimals, token2Decimals] = await Promise.all([
-      token1Contract.decimals(),
-      token2Contract.decimals(),
-    ]);
-    let allowed1 = (
-      await token1Contract.allowance(this._userAddress, poolAddress)
-    ).toString();
-    let allowed2 = (
-      await token2Contract.allowance(this._userAddress, poolAddress)
-    ).toString();
-
-    allowed1 = toEther(allowed1, token1Decimals);
-    allowed2 = toEther(allowed2, token2Decimals);
-
-    const shouldApprove1 = +allowed1 < +token1Amount;
-    const shouldApprove2 = +allowed2 < +token2Amount;
-
-    token1Amount = toWei(token1Amount, token1Decimals);
-    token2Amount = toWei(token2Amount, token2Decimals);
-
-    const approvePromises = [];
-
-    if (shouldApprove1)
-      approvePromises.push(
-        token1Contract.connect(this._signer).approve(poolAddress, token1Amount)
-      );
-
-    if (shouldApprove2)
-      approvePromises.push(
-        token2Contract.connect(this._signer).approve(poolAddress, token2Amount)
-      );
-
-    if (approvePromises.length) {
-      const approvals = await Promise.all(approvePromises);
-      await Promise.all(approvals.map((approval) => approval.wait()));
-    }
-
-    const tx = await witSwapContract
-      .connect(this._signer)
-      .provideLiquidity(
+    try {
+      const witSwapContract = await this._getWitSwap();
+      if (!witSwapContract) return;
+      const poolAddress = await witSwapContract.pools(
         token1Address,
+        token2Address
+      );
+      if (!poolAddress || poolAddress === zeroAddress) return;
+
+      const [token1Contract, token2Contract] = await Promise.all([
+        this.getTokenContract(token1Address),
+        this.getTokenContract(token2Address),
+      ]);
+
+      if (!token1Contract || !token2Contract) return;
+
+      const [token1Decimals, token2Decimals] = await Promise.all([
+        token1Contract.decimals(),
+        token2Contract.decimals(),
+      ]);
+      let allowed1 = (
+        await token1Contract.allowance(this._userAddress, poolAddress)
+      ).toString();
+      let allowed2 = (
+        await token2Contract.allowance(this._userAddress, poolAddress)
+      ).toString();
+
+      allowed1 = toEther(allowed1, token1Decimals);
+      allowed2 = toEther(allowed2, token2Decimals);
+
+      const shouldApprove1 = +allowed1 < +token1Amount;
+      const shouldApprove2 = +allowed2 < +token2Amount;
+
+      token1Amount = toWei(token1Amount, token1Decimals);
+      token2Amount = toWei(token2Amount, token2Decimals);
+      console.log(
         token1Amount,
-        token2Address,
-        token2Amount
+        (await token1Contract.balanceOf(this._userAddress)).toString()
+      );
+      console.log(
+        token2Amount,
+        (await token2Contract.balanceOf(this._userAddress)).toString()
       );
 
-    this.handleTransaction(tx);
+      const approvePromises = [];
+
+      if (shouldApprove1)
+        approvePromises.push(
+          token1Contract
+            .connect(this._signer)
+            .approve(poolAddress, token1Amount)
+        );
+
+      if (shouldApprove2)
+        approvePromises.push(
+          token2Contract
+            .connect(this._signer)
+            .approve(poolAddress, token2Amount)
+        );
+
+      if (approvePromises.length) {
+        const approvals = await Promise.all(approvePromises);
+        await Promise.all(approvals.map((approval) => approval.wait()));
+      }
+
+      const tx = await witSwapContract
+        .connect(this._signer)
+        .provideLiquidity(
+          token1Address,
+          token1Amount,
+          token2Address,
+          token2Amount
+        );
+
+      this.handleTransaction(tx);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
+    }
   };
 
   withdrawLiquidity = async (
@@ -840,42 +924,47 @@ class Blockchain {
     lpTokenAmount: string
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!this._signer) {
-      this.emitSignerError();
+      this.handleError('NO_WALLET_CONNECTED');
       return;
     }
     const witSwap = await this._getWitSwap();
     if (!witSwap) return;
 
-    const [token1Contract, token2Contract] = await Promise.all([
-      this.getTokenContract(token1Address),
-      this.getTokenContract(token2Address),
-    ]);
-    if (!token1Contract || !token2Contract) return;
+    try {
+      const [token1Contract, token2Contract] = await Promise.all([
+        this.getTokenContract(token1Address),
+        this.getTokenContract(token2Address),
+      ]);
+      if (!token1Contract || !token2Contract) return;
 
-    const [token1Decimals, token2Decimals] = await Promise.all([
-      token1Contract.decimals(),
-      token2Contract.decimals(),
-    ]);
+      const [token1Decimals, token2Decimals] = await Promise.all([
+        token1Contract.decimals(),
+        token2Contract.decimals(),
+      ]);
 
-    lpTokenAmount = toWei(lpTokenAmount);
-    minToken1AmountReturned = toWei(minToken1AmountReturned, token1Decimals);
-    minToken2AmountReturned = toWei(minToken2AmountReturned, token2Decimals);
+      lpTokenAmount = toWei(lpTokenAmount);
+      minToken1AmountReturned = toWei(minToken1AmountReturned, token1Decimals);
+      minToken2AmountReturned = toWei(minToken2AmountReturned, token2Decimals);
 
-    const tx = await witSwap
-      .connect(this._signer)
-      .withdrawLiquidity(
-        token1Address,
-        minToken1AmountReturned,
-        token2Address,
-        minToken2AmountReturned,
-        lpTokenAmount
-      );
+      const tx = await witSwap
+        .connect(this._signer)
+        .withdrawLiquidity(
+          token1Address,
+          minToken1AmountReturned,
+          token2Address,
+          minToken2AmountReturned,
+          lpTokenAmount
+        );
 
-    this.handleTransaction(tx);
+      this.handleTransaction(tx);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
+    }
   };
 
   checkTokenEligibility = async (
@@ -883,15 +972,15 @@ class Blockchain {
     userAddress: string = this._userAddress
   ) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return false;
     }
     if (!this._signer) {
-      this.emitSignerError();
+      this.handleError('NO_WALLET_CONNECTED');
       return false;
     }
 
@@ -903,21 +992,26 @@ class Blockchain {
     );
 
     if (!claimableTokenContract) return false;
-
-    return await claimableTokenContract.checkClaimEligibility(userAddress);
+    try {
+      return await claimableTokenContract.checkClaimEligibility(userAddress);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
+      return false;
+    }
   };
 
   claimToken = async (address: string) => {
     if (!this._provider) {
-      this.emitProviderError();
+      this.handleError('NO_METAMASK');
       return;
     }
     if (!(await this.isNetworkSupported())) {
-      this.emitNetworkError();
+      this.handleError('WRONG_NETWORK');
       return;
     }
     if (!this._signer) {
-      this.emitSignerError();
+      this.handleError('NO_WALLET_CONNECTED');
       return;
     }
     if (!this.getContractAddresses().claimableTokens.includes(address)) return;
@@ -927,13 +1021,18 @@ class Blockchain {
     );
 
     if (!claimableTokenContract) {
-      this.emitSignerError();
+      this.handleError('NO_CLAIMABLE_TOKEN');
       return;
     }
 
-    const tx = await claimableTokenContract.connect(this._signer).claim();
+    try {
+      const tx = await claimableTokenContract.connect(this._signer).claim();
 
-    this.handleTransaction(tx);
+      this.handleTransaction(tx);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      this.handleError(e.message);
+    }
   };
 }
 

@@ -11,10 +11,9 @@ import { useDispatch, useSelector } from './store/hooks';
 import { userActions } from './store/user/userReducer';
 import { createTokenModel, TokenModel } from './models/TokenModel';
 import { tokensActions } from './store/tokens/tokensReducer';
-import { snackbarSelector, userAddressSelector } from './store/selectors';
+import { snackbarSelector } from './store/selectors';
 import AlertSnackbar from './components/AlertSnackbar/AlertSnackbar';
 import AlertSnackbarModel from './models/AlertSnackbarModel';
-import { uiActions } from './store/ui/uiReducer';
 
 function App() {
   const snackbar = useSelector(snackbarSelector);
@@ -26,12 +25,7 @@ function App() {
   useEffect(() => {
     bc.isNetworkSupported().then((res) => {
       if (!res) {
-        dispatch(
-          uiActions.openSnackbar({
-            severity: 'error',
-            message: 'Wrong Network',
-          })
-        );
+        bc.handleError('WRONG_NETWORK');
         return;
       }
 

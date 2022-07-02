@@ -1,9 +1,9 @@
 import { PaletteMode } from '@mui/material';
-import { createTheme } from '@mui/material/styles';
+import { createTheme, Theme } from '@mui/material/styles';
 import type {} from '@mui/lab/themeAugmentation';
 import '@mui/lab/themeAugmentation';
 
-const getTheme = (mode: PaletteMode) =>
+const getTheme = (mode: PaletteMode): Theme =>
   createTheme({
     typography: {
       fontFamily: 'Montserrat, sans-serif',

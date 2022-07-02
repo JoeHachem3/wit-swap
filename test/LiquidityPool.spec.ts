@@ -7,11 +7,14 @@ import {
   ClaimableToken__factory,
   LiquidityPool__factory,
 } from '../typechain';
-import { toWei, zeroAddress } from '../utils';
+import { toWei } from '../utils';
 import { getContractAddress } from '@ethersproject/address';
 
-chai.use(require('chai-as-promised'));
-chai.use(require('chai-spies'));
+import chaiAsPromised from 'chai-as-promised';
+import chaiSpies from 'chai-spies';
+
+chai.use(chaiAsPromised);
+chai.use(chaiSpies);
 
 const { expect } = chai;
 
@@ -72,10 +75,9 @@ describe('LiquidityPool', function () {
     );
   });
 
-  it('#getToken1Price 1: should reject with InsufficientFunds', () => {
-    return expect(
-      contract.getToken1Price(toWei(1000))
-    ).to.eventually.be.rejectedWith('InsufficientFunds');
+  it('#getToken1Price 1: should reject', () => {
+    return expect(contract.getToken1Price(toWei(1000))).to.eventually.be
+      .rejected;
   });
 
   it('#getToken1Price 2: should return the right amount', async () => {
@@ -84,10 +86,9 @@ describe('LiquidityPool', function () {
     );
   });
 
-  it('#getToken2Price 1: should reject with InsufficientFunds', () => {
-    return expect(
-      contract.getToken2Price(toWei(1000))
-    ).to.eventually.be.rejectedWith('InsufficientFunds');
+  it('#getToken2Price 1: should reject', () => {
+    return expect(contract.getToken2Price(toWei(1000))).to.eventually.be
+      .rejected;
   });
 
   it('#getToken2Price 2: should return the right amount', async () => {
@@ -110,22 +111,22 @@ describe('LiquidityPool', function () {
     expect(token2Amount).to.equal(0);
   });
 
-  it('#sellToken1 1: should reject with Unauthorized', () => {
+  it('#sellToken1 1: should reject', () => {
     return expect(
       contract.connect(owner2).sellToken1(owner1.address, toWei(25), toWei(20))
-    ).to.eventually.be.rejectedWith('Unauthorized');
+    ).to.eventually.be.rejected;
   });
 
-  it('#sellToken1 2: should reject with Slippage', () => {
+  it('#sellToken1 2: should reject with SLIPPAGE', () => {
     return expect(
       contract.sellToken1(owner1.address, toWei(25), toWei(21))
-    ).to.eventually.be.rejectedWith('Slippage');
+    ).to.eventually.be.rejectedWith('SLIPPAGE');
   });
 
-  it('#sellToken1 3: should reject with InsufficientFunds', () => {
+  it('#sellToken1 3: should reject with INSUFFICIENT_FUNDS', () => {
     return expect(
       contract.sellToken1(owner2.address, toWei(25), toWei(5))
-    ).to.eventually.be.rejectedWith('InsufficientFunds');
+    ).to.eventually.be.rejectedWith('INSUFFICIENT_FUNDS');
   });
 
   it('#sellToken1 4: should transfer tokens successfully', async () => {
@@ -136,9 +137,9 @@ describe('LiquidityPool', function () {
       toWei('80.048028817290374224')
     );
 
-    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(375));
+    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(125));
     expect(await token2.balanceOf(owner1.address)).to.equal(
-      toWei('419.951971182709625776')
+      toWei('169.951971182709625776')
     );
   });
 
@@ -148,14 +149,16 @@ describe('LiquidityPool', function () {
     ).to.eventually.be.rejected;
   });
 
-  it('#sellToken2 2: should reject', () => {
-    return expect(contract.sellToken2(owner1.address, toWei(25), toWei(25))).to
-      .eventually.be.rejected;
+  it('#sellToken2 2: should reject with SLIPPAGE', () => {
+    return expect(
+      contract.sellToken2(owner1.address, toWei(25), toWei(25))
+    ).to.eventually.be.rejectedWith('SLIPPAGE');
   });
 
-  it('#sellToken2 3: should reject', () => {
-    return expect(contract.sellToken2(owner2.address, toWei(25), toWei(20))).to
-      .eventually.be.rejected;
+  it('#sellToken2 3: should reject with INSUFFICIENT_FUNDS', () => {
+    return expect(
+      contract.sellToken2(owner2.address, toWei(25), toWei(5))
+    ).to.eventually.be.rejectedWith('INSUFFICIENT_FUNDS');
   });
 
   it('#sellToken2 4: should transfer tokens successfully', async () => {
@@ -166,26 +169,28 @@ describe('LiquidityPool', function () {
       toWei('80.048028817290374224')
     );
 
-    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(375));
+    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(125));
     expect(await token1.balanceOf(owner1.address)).to.equal(
-      toWei('419.951971182709625776')
+      toWei('169.951971182709625776')
     );
   });
 
-  it('#buyToken1 1: should reject with Unauthorized', () => {
+  it('#buyToken1 1: should reject', () => {
     return expect(
       contract.connect(owner2).buyToken1(owner1.address, toWei(20), toWei(25))
-    ).to.eventually.be.rejectedWith('Unauthorized');
+    ).to.eventually.be.rejected;
   });
 
-  it('#buyToken1 2: should reject', () => {
-    return expect(contract.buyToken1(owner1.address, toWei(20), toWei(24))).to
-      .eventually.be.rejected;
+  it('#buyToken1 2: should reject with SLIPPAGE', () => {
+    return expect(
+      contract.buyToken1(owner1.address, toWei(20), toWei(20))
+    ).to.eventually.be.rejectedWith('SLIPPAGE');
   });
 
-  it('#buyToken1 3: should reject', () => {
-    return expect(contract.buyToken1(owner2.address, toWei(20), toWei(25))).to
-      .eventually.be.rejected;
+  it('#buyToken1 3: should reject with INSUFFICIENT_FUNDS', () => {
+    return expect(
+      contract.buyToken1(owner2.address, toWei(20), toWei(30))
+    ).to.eventually.be.rejectedWith('INSUFFICIENT_FUNDS');
   });
 
   it('#buyToken1 4: should transfer tokens successfully', async () => {
@@ -196,26 +201,28 @@ describe('LiquidityPool', function () {
       toWei('125.075000000000000000')
     );
 
-    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(420));
+    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(170));
     expect(await token2.balanceOf(owner1.address)).to.equal(
-      toWei('374.925000000000000000')
+      toWei('124.925000000000000000')
     );
   });
 
-  it('#buyToken2 1: should reject with Unauthorized', () => {
+  it('#buyToken2 1: should reject', () => {
     return expect(
       contract.connect(owner2).buyToken2(owner1.address, toWei(20), toWei(25))
-    ).to.eventually.be.rejectedWith('Unauthorized');
+    ).to.eventually.be.rejected;
   });
 
-  it('#buyToken2 2: should reject', () => {
-    return expect(contract.buyToken2(owner1.address, toWei(20), toWei(24))).to
-      .eventually.be.rejected;
+  it('#buyToken2 2: should reject with SLIPPAGE', () => {
+    return expect(
+      contract.buyToken2(owner1.address, toWei(20), toWei(24))
+    ).to.eventually.be.rejectedWith('SLIPPAGE');
   });
 
-  it('#buyToken2 3: should reject', () => {
-    return expect(contract.buyToken2(owner2.address, toWei(20), toWei(25))).to
-      .eventually.be.rejected;
+  it('#buyToken2 3: should reject with INSUFFICIENT_FUNDS', () => {
+    return expect(
+      contract.buyToken2(owner2.address, toWei(20), toWei(30))
+    ).to.eventually.be.rejectedWith('INSUFFICIENT_FUNDS');
   });
 
   it('#buyToken2 4: should transfer tokens successfully', async () => {
@@ -226,32 +233,32 @@ describe('LiquidityPool', function () {
       toWei('125.075000000000000000')
     );
 
-    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(420));
+    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(170));
     expect(await token1.balanceOf(owner1.address)).to.equal(
-      toWei('374.925000000000000000')
+      toWei('124.925000000000000000')
     );
   });
 
-  it('#provideLiquidity 1: should reject with Unauthorized', () => {
+  it('#provideLiquidity 1: should reject', () => {
     return expect(
       contract
         .connect(owner2)
         .provideLiquidity(owner1.address, toWei(10), toWei(10))
-    ).to.eventually.be.rejectedWith('Unauthorized');
+    ).to.eventually.be.rejected;
   });
 
-  it('#provideLiquidity 2: should reject with InsufficientFunds', () => {
+  it('#provideLiquidity 2: should reject with INSUFFICIENT_FUNDS', () => {
     return expect(
       contract.provideLiquidity(owner2.address, toWei(10), toWei(10))
-    ).to.eventually.be.rejectedWith('InsufficientFunds');
+    ).to.eventually.be.rejectedWith('INSUFFICIENT_FUNDS');
   });
 
-  it('#provideLiquidity 3: should reject with InsufficientFunds', async () => {
+  it('#provideLiquidity 3: should reject with INSUFFICIENT_FUNDS', async () => {
     await token1.transfer(owner2.address, toWei(10));
 
     return expect(
       contract.provideLiquidity(owner2.address, toWei(10), toWei(10))
-    ).to.eventually.be.rejectedWith('InsufficientFunds');
+    ).to.eventually.be.rejectedWith('INSUFFICIENT_FUNDS');
   });
 
   it('#provideLiquidity 4: should provide liquidity successfully', async () => {
@@ -259,8 +266,8 @@ describe('LiquidityPool', function () {
     await token2.approve(contract.address, toWei(10));
     await contract.provideLiquidity(owner1.address, toWei(10), toWei(12));
 
-    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(390));
-    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(390));
+    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(140));
+    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(140));
 
     expect(await token1.balanceOf(contract.address)).to.equal(toWei(110));
     expect(await token2.balanceOf(contract.address)).to.equal(toWei(110));
@@ -268,10 +275,12 @@ describe('LiquidityPool', function () {
     expect(await contract.token1Balance()).to.equal(toWei(110));
     expect(await contract.token2Balance()).to.equal(toWei(110));
 
+    await token1.approve(contract.address, toWei(10));
+    await token2.approve(contract.address, toWei(10));
     await contract.provideLiquidity(owner1.address, toWei(12), toWei(10));
 
-    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(380));
-    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(380));
+    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(130));
+    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(130));
 
     expect(await token1.balanceOf(contract.address)).to.equal(toWei(120));
     expect(await token2.balanceOf(contract.address)).to.equal(toWei(120));
@@ -282,17 +291,47 @@ describe('LiquidityPool', function () {
 
   it('#withdrawLiquidity 1: should reject', () => {
     return expect(
-      contract.connect(owner2).withdrawLiquidity(owner1.address, toWei(1))
+      contract
+        .connect(owner2)
+        .withdrawLiquidity(owner1.address, toWei(1), toWei(1), toWei(1))
     ).to.eventually.be.rejected;
   });
 
-  it('#withdrawLiquidity 2: should reject', () => {
-    return expect(contract.withdrawLiquidity(owner1.address, toWei(10))).to
-      .eventually.be.rejected;
+  it('#withdrawLiquidity 2: should reject with INSUFFICIENT_FUNDS', () => {
+    return expect(
+      contract.withdrawLiquidity(owner1.address, toWei(10), toWei(1), toWei(1))
+    ).to.eventually.be.rejectedWith('INSUFFICIENT_FUNDS');
   });
 
-  it('#withdrawLiquidity 3: should withdraw liquidity successfully', async () => {
-    await contract.withdrawLiquidity(owner1.address, toWei(0.5));
+  it('#withdrawLiquidity 3: should reject with SLIPPAGE', () => {
+    return expect(
+      contract.withdrawLiquidity(
+        owner1.address,
+        toWei(1),
+        toWei(1000),
+        toWei(1)
+      )
+    ).to.eventually.be.rejectedWith('SLIPPAGE');
+  });
+
+  it('#withdrawLiquidity 4: should reject with SLIPPAGE', () => {
+    return expect(
+      contract.withdrawLiquidity(
+        owner1.address,
+        toWei(1),
+        toWei(1),
+        toWei(1000)
+      )
+    ).to.eventually.be.rejectedWith('SLIPPAGE');
+  });
+
+  it('#withdrawLiquidity 5: should withdraw liquidity successfully', async () => {
+    await contract.withdrawLiquidity(
+      owner1.address,
+      toWei(0.5),
+      toWei(1),
+      toWei(1)
+    );
 
     expect(await contract.token1Balance()).to.equal(toWei(50));
     expect(await contract.token2Balance()).to.equal(toWei(50));
@@ -300,7 +339,7 @@ describe('LiquidityPool', function () {
     expect(await token1.balanceOf(contract.address)).to.equal(toWei(50));
     expect(await token2.balanceOf(contract.address)).to.equal(toWei(50));
 
-    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(450));
-    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(450));
+    expect(await token1.balanceOf(owner1.address)).to.equal(toWei(200));
+    expect(await token2.balanceOf(owner1.address)).to.equal(toWei(200));
   });
 });

@@ -3,8 +3,8 @@ import { Drawer } from '@mui/material';
 import classes from './BottomDrawer.module.css';
 import BottomDrawerModel from '../../models/BottomDrawerModel';
 
-const BottomDrawer = (
-  props: PropsWithChildren<BottomDrawerModel> = new BottomDrawerModel({})
+const BottomDrawer: React.FC<PropsWithChildren<BottomDrawerModel>> = (
+  props = new BottomDrawerModel({})
 ) => (
   <Drawer
     anchor="bottom"
@@ -12,7 +12,7 @@ const BottomDrawer = (
     open={props.open}
     onClose={props.onClose}
   >
-    <div className={classes['content']}>{props.children}</div>
+    <div className={classes.content}>{props.children}</div>
   </Drawer>
 );
 export default BottomDrawer;

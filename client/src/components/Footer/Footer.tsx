@@ -1,9 +1,9 @@
 import React from 'react';
 import classes from './Footer.module.css';
 
-const Footer = () => {
+const Footer: React.FC = () => {
   return (
-    <footer className={classes['Footer']}>
+    <footer className={classes.Footer}>
       <p>
         Made with Dedication by{' '}
         <a href="https://github.com/JoeHachem3">@JoeHachem3</a>

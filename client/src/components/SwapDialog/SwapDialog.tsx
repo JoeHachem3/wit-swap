@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LoadingButton } from '@mui/lab';
 import { Chip, Dialog, DialogContent, useMediaQuery } from '@mui/material';
-import { useState } from 'react';
 import SwapDialogModel from '../../models/SwapDialogModel';
 import classes from './SwapDialog.module.css';
 import { smallMediaQuery } from '../../utils';
@@ -9,7 +8,9 @@ import BottomDrawer from '../BottomDrawer/BottomDrawer';
 import { useSelector } from '../../store/hooks';
 import { userAddressSelector } from '../../store/selectors';
 
-const SwapDialog = (props: SwapDialogModel = new SwapDialogModel({})) => {
+const SwapDialog: React.FC<SwapDialogModel> = (
+  props = new SwapDialogModel({})
+) => {
   const isSmallScreen = useMediaQuery(smallMediaQuery);
 
   const userAddress = useSelector(userAddressSelector);
@@ -35,7 +36,7 @@ const SwapDialog = (props: SwapDialogModel = new SwapDialogModel({})) => {
 
   const content = (
     <>
-      <span className={classes['message']}>
+      <span className={classes.message}>
         {props.isSellingToken
           ? 'The Minimum You Will Get is'
           : 'The Maximum You Will Pay is'}{' '}
@@ -43,7 +44,7 @@ const SwapDialog = (props: SwapDialogModel = new SwapDialogModel({})) => {
           <Chip
             key={index}
             clickable
-            className={classes['amount']}
+            className={classes.amount}
             label={`${token.amount} ${token.symbol}`}
           />
         ))}

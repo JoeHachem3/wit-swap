@@ -1,3 +1,4 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import classes from './TokenListDialog.module.css';
 import {
   Dialog,
@@ -11,7 +12,6 @@ import { ArrowBackIosNew, Archive } from '@mui/icons-material';
 import TokenListDialogModel from '../../models/TokenListDialogModel';
 import { useSelector } from 'react-redux';
 import { tokensSelector } from '../../store/selectors';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from '../../store/hooks';
 import { tokensActions } from '../../store/tokens/tokensReducer';
 import { createTokenModel, TokenModel } from '../../models/TokenModel';
@@ -22,8 +22,8 @@ import BottomDrawer from '../BottomDrawer/BottomDrawer';
 import TokenListItem from '../TokenListItem/TokenListItem';
 import TokenListItemModel from '../../models/TokenListItemModel';
 
-const TokenListDialog = (
-  props: TokenListDialogModel = new TokenListDialogModel({})
+const TokenListDialog: React.FC<TokenListDialogModel> = (
+  props = new TokenListDialogModel({})
 ) => {
   const isSmallScreen = useMediaQuery(smallMediaQuery);
 
@@ -102,6 +102,8 @@ const TokenListDialog = (
     }, 500);
   }, [tokens, searchValue]);
 
+  const disabled = !tokenAddress || isLoading || !!tokenAddressInvalidityReason;
+
   const importToken = (e: React.FormEvent<HTMLFormElement>) => {
     if (disabled) return;
     e.preventDefault();
@@ -130,7 +132,7 @@ const TokenListDialog = (
   };
 
   const tokenListItemMapping =
-    (isImported: boolean = false) =>
+    (isImported = false) =>
     (token: TokenModel) =>
       (
         <TokenListItem
@@ -145,11 +147,9 @@ const TokenListDialog = (
         />
       );
 
-  const disabled = !tokenAddress || isLoading || !!tokenAddressInvalidityReason;
-
   const content = isImportMode ? (
     <>
-      <div className={classes['header']}>
+      <div className={classes.header}>
         <h1>Import Token</h1>
         <IconButton className="md" onClick={() => setIsImportMode(false)}>
           <ArrowBackIosNew />
@@ -163,7 +163,7 @@ const TokenListDialog = (
       </div>
       <form onSubmit={(e) => importToken(e)} className={classes['import-form']}>
         <input
-          className={classes['input']}
+          className={classes.input}
           placeholder="0x123..."
           value={tokenAddress}
           onChange={(e) => setTokenAddress(e.target.value)}
@@ -175,7 +175,7 @@ const TokenListDialog = (
     </>
   ) : (
     <>
-      <div className={classes['header']}>
+      <div className={classes.header}>
         <h1>Select Token</h1>
         <IconButton className="md" onClick={() => setIsImportMode(true)}>
           <Archive />
@@ -187,7 +187,7 @@ const TokenListDialog = (
           Import Token
         </Button>
         <input
-          className={classes['input']}
+          className={classes.input}
           placeholder="Search..."
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}

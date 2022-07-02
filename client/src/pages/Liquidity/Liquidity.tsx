@@ -13,7 +13,7 @@ import SwapDialog from '../../components/SwapDialog/SwapDialog';
 import SwapDialogModel from '../../models/SwapDialogModel';
 import { getMinReturnedAmount } from '../../utils';
 
-const Liquidity = () => {
+const Liquidity: React.FC = () => {
   const { token1Address, token2Address } = (useLocation().state || {}) as {
     token1Address?: string;
     token2Address?: string;
@@ -74,10 +74,11 @@ const Liquidity = () => {
   };
 
   const proceed = async () => {
+    if (!token1Address || !token2Address) return;
     await bc.withdrawLiquidity(
-      token1Address!,
+      token1Address,
       getMinReturnedAmount(slippage, +tokenBalances.token1Amount),
-      token2Address!,
+      token2Address,
       getMinReturnedAmount(slippage, +tokenBalances.token2Amount),
       lpTokenBalance
     );
@@ -86,11 +87,11 @@ const Liquidity = () => {
 
   return (
     <>
-      <form className={classes['Liquidity']} onSubmit={(e) => submit(e)}>
-        <div className={classes['header']}>
+      <form className={classes.Liquidity} onSubmit={(e) => submit(e)}>
+        <div className={classes.header}>
           <h1>Swap</h1>
         </div>
-        <div className={classes['tokens']}>
+        <div className={classes.tokens}>
           <TokenListItem
             {...new TokenListItemModel({
               tokenAddress: lpTokenAddress,

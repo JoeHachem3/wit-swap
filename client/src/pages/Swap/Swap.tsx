@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import TokenInput from '../../components/TokenInput/TokenInput';
 import TokenInputModel from '../../models/TokenInputModel';
 import classes from './Swap.module.css';
 import { Button } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import ConnectWalletButton from '../../components/ConnectWalletButton/ConnectWalletButton';
 import { useDispatch, useSelector } from '../../store/hooks';
 import {
@@ -21,7 +20,7 @@ import SwapDialogModel from '../../models/SwapDialogModel';
 import { useNavigate } from 'react-router-dom';
 import * as utils from '../../utils';
 
-const Swap = () => {
+const Swap: React.FC = () => {
   const updateTokenAmountInterval = useRef<NodeJS.Timeout>();
   const shouldUpdateTokenAmount = useRef<boolean>();
 
@@ -57,71 +56,9 @@ const Swap = () => {
   const [isSwapDialogOpen, setIsSwapDialogOpen] = useState<boolean>(false);
   const [doesPoolExist, setDoesPoolExist] = useState<boolean>(true);
 
-  useEffect(() => {
-    if (!swapTokens.token1Address && tokens.defaultTokens.length) {
-      setToken1Address('swap', tokens.defaultTokens[0].address);
-    }
-
-    if (swapTokens.token1Address && swapTokens.token2Address) {
-      bc.getLiquidityPoolContract(
-        swapTokens.token1Address,
-        swapTokens.token2Address
-      )
-        .then((res) => {
-          setDoesPoolExist(!!res);
-        })
-        .catch(() => setDoesPoolExist(false));
-    }
-  }, [tokens.defaultTokens]);
-
-  useEffect(() => {
-    if (shouldUpdateTokenAmount.current) {
-      shouldUpdateTokenAmount.current = false;
-      onAmountChange(token1Amount, 1);
-    }
-  }, [token1Amount, token2Amount]);
-
-  useEffect(() => {
-    if (shouldUpdateTokenAmount.current) {
-      shouldUpdateTokenAmount.current = false;
-      onAmountChange(token2Amount, 2);
-    }
-  }, [swapTokens.token1Address]);
-
-  useEffect(() => {
-    if (shouldUpdateTokenAmount.current) {
-      shouldUpdateTokenAmount.current = false;
-      onAmountChange(token1Amount, 1);
-    }
-  }, [swapTokens.token2Address]);
-
-  const switchTokens = () => {
-    shouldUpdateTokenAmount.current = true;
-    setToken1Address('swap', swapTokens.token2Address);
-    setToken2Address('swap', swapTokens.token1Address);
-    setToken1Amount(token2Amount);
-    setToken2Amount(token1Amount);
-  };
-
-  const findToken = (address: string) => {
-    return (
-      tokens.importedTokens.find((token) => token.address === address) ||
-      tokens.defaultTokens.find((token) => token.address === address)
-    );
-  };
-
-  const onTokenChange = (address: string, tokenNumber: number) => {
-    shouldUpdateTokenAmount.current = true;
-    if (tokenNumber === 1) {
-      address === swapTokens.token2Address
-        ? switchTokens()
-        : setToken1Address('swap', address);
-    } else if (tokenNumber === 2) {
-      address === swapTokens.token1Address
-        ? switchTokens()
-        : setToken2Address('swap', address);
-    }
-  };
+  const bothAddresses = !!(
+    swapTokens.token1Address && swapTokens.token2Address
+  );
 
   const updateToken1Amount = async (amount: string) => {
     setIsLoading(true);
@@ -189,12 +126,74 @@ const Swap = () => {
     }
   };
 
+  useEffect(() => {
+    if (!swapTokens.token1Address && tokens.defaultTokens.length) {
+      setToken1Address('swap', tokens.defaultTokens[0].address);
+    }
+
+    if (swapTokens.token1Address && swapTokens.token2Address) {
+      bc.getLiquidityPoolContract(
+        swapTokens.token1Address,
+        swapTokens.token2Address
+      )
+        .then((res) => {
+          setDoesPoolExist(!!res);
+        })
+        .catch(() => setDoesPoolExist(false));
+    }
+  }, [tokens.defaultTokens]);
+
+  useEffect(() => {
+    if (shouldUpdateTokenAmount.current) {
+      shouldUpdateTokenAmount.current = false;
+      onAmountChange(token1Amount, 1);
+    }
+  }, [token1Amount, token2Amount]);
+
+  useEffect(() => {
+    if (shouldUpdateTokenAmount.current) {
+      shouldUpdateTokenAmount.current = false;
+      onAmountChange(token2Amount, 2);
+    }
+  }, [swapTokens.token1Address]);
+
+  useEffect(() => {
+    if (shouldUpdateTokenAmount.current) {
+      shouldUpdateTokenAmount.current = false;
+      onAmountChange(token1Amount, 1);
+    }
+  }, [swapTokens.token2Address]);
+
+  const switchTokens = () => {
+    shouldUpdateTokenAmount.current = true;
+    setToken1Address('swap', swapTokens.token2Address);
+    setToken2Address('swap', swapTokens.token1Address);
+    setToken1Amount(token2Amount);
+    setToken2Amount(token1Amount);
+  };
+
+  const findToken = (address: string) => {
+    return (
+      tokens.importedTokens.find((token) => token.address === address) ||
+      tokens.defaultTokens.find((token) => token.address === address)
+    );
+  };
+
+  const onTokenChange = (address: string, tokenNumber: number) => {
+    shouldUpdateTokenAmount.current = true;
+    if (tokenNumber === 1) {
+      address === swapTokens.token2Address
+        ? switchTokens()
+        : setToken1Address('swap', address);
+    } else if (tokenNumber === 2) {
+      address === swapTokens.token1Address
+        ? switchTokens()
+        : setToken2Address('swap', address);
+    }
+  };
+
   const sufficientBalance =
     +balances[swapTokens.token1Address] - +token1Amount >= 0;
-
-  const bothAddresses = !!(
-    swapTokens.token1Address && swapTokens.token2Address
-  );
 
   const disabled =
     (doesPoolExist && !(bothAddresses && +token1Amount && +token2Amount)) ||
@@ -212,6 +211,11 @@ const Swap = () => {
     if (disabled) return;
     setIsSwapDialogOpen(true);
   };
+
+  const getMinReturnedAmount = () =>
+    utils.getMinReturnedAmount(slippage, +token2Amount);
+
+  const getMaxPrice = () => utils.getMaxPrice(slippage, +token1Amount);
 
   const proceed = async () => {
     updateTokenAmountInterval.current &&
@@ -235,11 +239,6 @@ const Swap = () => {
     setToken1Amount('');
     setToken2Amount('');
   };
-
-  const getMinReturnedAmount = () =>
-    utils.getMinReturnedAmount(slippage, +token2Amount);
-
-  const getMaxPrice = () => utils.getMaxPrice(slippage, +token1Amount);
 
   const swapDialogProps = new SwapDialogModel(
     isSellingToken
@@ -271,12 +270,12 @@ const Swap = () => {
 
   return (
     <>
-      <form className={classes['Swap']} onSubmit={(e) => submit(e)}>
-        <div className={classes['header']}>
+      <form className={classes.Swap} onSubmit={(e) => submit(e)}>
+        <div className={classes.header}>
           <h1>Swap</h1>
         </div>
         <div className={classes['inputs-container']}>
-          <div className={classes['inputs']}>
+          <div className={classes.inputs}>
             <TokenInput
               {...new TokenInputModel({
                 value: token1Amount,
@@ -294,7 +293,7 @@ const Swap = () => {
               })}
             />
           </div>
-          <div className={classes['switch']}>
+          <div className={classes.switch}>
             <Button onClick={switchTokens}>Switch</Button>
           </div>
         </div>
