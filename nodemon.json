@@ -1,4 +1,0 @@
-{
-  "watch": ["test", "contracts"],
-  "ext": "ts, sol"
-}
