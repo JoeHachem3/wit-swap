@@ -1,13 +1,16 @@
 {
   "name": "witswap",
   "version": "0.0.0",
+  "homepage": "https://joehachem3.github.io/wit-swap",
   "engines": {
     "node": ">=8.3.0"
   },
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d client/dist",
     "dev": "vite serve client",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "build": "cd client && tsc && vite build",
+    "preview": "cd client && vite preview",
     "lint": "npx eslint . --ext .js,.ts",
     "test": "nodemon --exec 'npx hardhat test'",
     "contracts:localhost": "npx hardhat run --network localhost scripts/deploy.ts",
@@ -59,6 +62,7 @@
     "eslint-plugin-promise": "^5.2.0",
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.6.4",
+    "gh-pages": "^4.0.0",
     "hardhat": "^2.9.3",
     "hardhat-gas-reporter": "^1.0.8",
     "prettier": "^2.6.2",

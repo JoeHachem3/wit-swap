@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
@@ -6,7 +6,6 @@ import { Card, CardContent } from '@mui/material';
 import classes from './App.module.css';
 import backgroundImage from './assets/background.png';
 import bc from './utils/blockchain';
-import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from './store/hooks';
 import { userActions } from './store/user/userReducer';
 import { createTokenModel, TokenModel } from './models/TokenModel';
@@ -15,7 +14,7 @@ import { snackbarSelector } from './store/selectors';
 import AlertSnackbar from './components/AlertSnackbar/AlertSnackbar';
 import AlertSnackbarModel from './models/AlertSnackbarModel';
 
-function App() {
+const App: React.FC = () => {
   const snackbar = useSelector(snackbarSelector);
 
   const dispatch = useDispatch();
@@ -52,11 +51,11 @@ function App() {
   }, [snackbar]);
 
   return (
-    <div className={classes['app']}>
-      <img className={classes['background']} src={backgroundImage} alt="" />
-      <main className={classes['main']}>
+    <div className={classes.app}>
+      <img className={classes.background} src={backgroundImage} alt="" />
+      <main className={classes.main}>
         <Header />
-        <Card className={classes['card']}>
+        <Card className={classes.card}>
           <CardContent className={classes['card-content']}>
             <Outlet />
           </CardContent>
@@ -74,6 +73,6 @@ function App() {
       </main>
     </div>
   );
-}
+};
 
 export default App;

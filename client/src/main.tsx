@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import App from './App';
 import './style/index.css';
 import Pool from './pages/Pool/Pool';
@@ -12,12 +12,13 @@ import getTheme from './style/theme';
 import store, { persistor } from './store/store';
 import Liquidity from './pages/Liquidity/Liquidity';
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider theme={getTheme('dark')}>
       <Provider store={store}>
         <PersistGate persistor={persistor}>
-          <BrowserRouter>
+          <HashRouter basename={'/'}>
             <Routes>
               <Route path="/" element={<Navigate replace to="/swap" />} />
               <Route path="/" element={<App />}>
@@ -27,7 +28,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <Route path="*" element={<Navigate replace to="/swap" />} />
               </Route>
             </Routes>
-          </BrowserRouter>
+          </HashRouter>
         </PersistGate>
       </Provider>
     </ThemeProvider>

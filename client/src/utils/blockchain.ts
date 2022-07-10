@@ -43,11 +43,11 @@ class Blockchain {
       ],
     },
     '3': {
-      witSwap: '0x6516fe03D5aba00978ea29631D917f74eE9dbF34',
+      witSwap: '0xF44c9C99229673c870b2C0863F5c5604b3514a36',
       claimableTokens: [
-        '0x1eB5E9e7d9cAF9EEc9fE42c20180069e36716C75',
-        '0x4e83d79C03f5c757b175317f9D4CedB9E66BbD06',
-        '0xead4bD3dFa045cab15c74aba54B53c2E496d9f71',
+        '0x18CF51357E713Cd961e833424855816f6FC9F5f0',
+        '0x9DD2B38Ebff691790A0c6c7cAAfE96EB2A06340A',
+        '0xC7C922BB886AF14dd4EB2C730042358c4F65a99D',
       ],
     },
   };
